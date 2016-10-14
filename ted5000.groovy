@@ -29,9 +29,14 @@ metadata {
 		}
 		
 		valueTile(	"voltage", "device.voltage",width: 2,  height: 1 ) {
-			state("device.voltage", label:'${currentValue} V' )
+			state("device.voltage", label:'${currentValue}V' )
 		}
 		
+        	
+		valueTile(	"power_factor", "device.power_factor",width: 2,  height: 1 ) {
+			state("device.power_factor", label:'PF: ${currentValue}%' )
+		}
+        
 		valueTile("refresh", "command.refresh",width: 2,  height: 2) {
 			state "default", label:'refresh', action:"refresh.refresh", icon:"st.secondary.refresh-icon"
 		}
@@ -39,16 +44,19 @@ metadata {
 		valueTile(	"daily_max_power","device.daily_max_power",width: 4,height: 1) {
 			state("device.daily_max_power", label:'Daily Max: ${currentValue} W')
 		}
-	
+			valueTile(	"daily_total_power","device.daily_total_power",width: 4,height: 1) {
+			state("device.daily_total_power", label:'Daily Total: ${currentValue} W')
+		}
 		valueTile(	"daily_min_power","device.daily_min_power",width: 4,height: 1) {
 			state("device.daily_min_power",label:'Daily Min: ${currentValue} w')
 		}
 		
 		valueTile(	"cost", "device.cost",width: 2,  height: 1) {
-			state("device.cost", label:'\044 ${currentValue} CPH')
+			state("device.cost", label:'\044${currentValue} CPH')
 		}
 		main(["power"])
-		details(["power","refresh","daily_max_power","daily_min_power", "cost","voltage"])
+        
+		details(["power","daily_total_power","daily_max_power","daily_min_power","refresh", "cost","power_factor","voltage"])
 	}
 }
 
@@ -114,14 +122,13 @@ def parse(String description) {
 	//this is automatically called when the hub action returns
 	log.debug "Got Reply"
 	def xml = parseLanMessage(description).xml
-
-	
-
-	def evt1 = createEvent (name: "power", value: xml.Power.Total.PowerNow, unit:"W")
+    
+	def evt1 = createEvent (name: "power", value: (xml.Power.Total.PowerNow).toInteger(), unit:"W")
 	def evt2 = createEvent (name: "voltage", value: ((xml.Voltage.Total.VoltageNow).toDouble() / 10.0), unit:"V")
-	def evt3 = createEvent (name: "cost", value: ((xml.Cost.Total.CostNow).toDouble() / 100.0), unit:"V")
-	def evt4 = createEvent (name: "daily_max_power", value: xml.Power.Total.PeakTdy, unit:"W")
-	def evt5 = createEvent (name: "daily_min_power", value: xml.Power.Total.MinTdy, unit:"W")
-	
-	return [evt1, evt2,evt3, evt4,evt5]
+	def evt3 = createEvent (name: "cost", value: ((xml.Cost.Total.CostNow).toDouble() / 100.0), unit:"\044")
+	def evt4 = createEvent (name: "daily_max_power", value: (xml.Power.Total.PeakTdy).toInteger(), unit:"W")
+	def evt5 = createEvent (name: "daily_min_power", value: (xml.Power.Total.MinTdy).toInteger(), unit:"W")
+    def evt6 = createEvent (name: "daily_total_power", value: (xml.Power.Total.PowerTDY).toInteger(), unit:"W")
+	def evt7 = createEvent (name: "power_factor", value: ((xml.Power.MTU1.PF).toDouble() / 10.0), unit:"%")
+	return [evt1, evt2,evt3,evt4,evt5,evt6,evt7]
 }

@@ -1,5 +1,5 @@
- preferences {
-    input("deviceIP", "string", title:"IP Address", description: "IP Address", required: true, displayDuringSetup: true)
+preferences {
+	input("deviceIP", "string", title:"IP Address", description: "IP Address", required: true, displayDuringSetup: true)
 }
 
 metadata {
@@ -8,41 +8,54 @@ metadata {
 		capability "Energy Meter"
 		capability "Polling"
 		capability "Refresh"
-        capability "Sensor"
+		capability "Sensor"
 		capability "Power Meter"
 	}
 
 	// UI tile definitions
-	tiles {
-	    
+	tiles(scale: 2) {
+		
 		valueTile(	"power", 
-        			"device.power", 
-        			width: 2, 
-                    height: 2,
-                    decoration: "flat"
-                 ) 
-        {
-            state(	"power",
-                    label:'${currentValue} W', 
-                  	backgroundColors:[
-					[value: 200, color: "#153591"],
-					[value: 400, color: "#1e9cbb"],
-					[value: 600, color: "#90d2a7"],
-					[value: 700, color: "#44b621"],
-					[value: 1000, color: "#f1d801"],
-					[value: 1200, color: "#d04e00"],
-					[value: 1400, color: "#bc2323"]
-				]
-                 )
+		"device.power", 
+width: 4, 
+height: 4
+		) 
+		{
+			state(	"device.power",
+label:'${currentValue} W', 
+backgroundColors:[
+			[value: 200, color: "#153591"],
+			[value: 400, color: "#1e9cbb"],
+			[value: 600, color: "#90d2a7"],
+			[value: 700, color: "#44b621"],
+			[value: 1000, color: "#f1d801"],
+			[value: 1200, color: "#d04e00"],
+			[value: 1400, color: "#bc2323"]
+			]
+			)
 		}
-        
-        
-        standardTile("refresh", "device.power") {
-			state "default", action:"refresh.refresh", icon:"st.secondary.refresh"
+		
+		valueTile(	"voltage", "device.voltage",width: 2,  height: 1 ) {
+			state("device.voltage", label:'${currentValue} V' )
 		}
-
-		main(["power", "energy"])
-		details(["power", "refresh"])
+		
+		standardTile("refresh", "command.refresh",width: 2,  height: 2, inactiveLabel: false) {
+			state "default", label:'refresh', action:"refresh.refresh", icon:"st.secondary.refresh-icon"
+		}
+		
+		valueTile(	"daily_max_power","device.daily_max_power",width: 3,height: 1) {
+			state("device.daily_max_power", label:'Daily Max: ${currentValue} W')
+		}
+		
+		valueTile(	"daily_min_power","device.daily_min_power",width: 3,height: 1) {
+			state("device.daily_min_power",label:'Daily Min: ${currentValue} w')
+		}
+		
+		valueTile(	"cost", "device.cost",width: 2,  height: 1) {
+			state("device.cost", label:'\044 ${currentValue} CPH')
+		}
+		main(["power"])
+		details(["power","refresh" ,"daily_max_power","daily_min_power","voltage", "cost"])
 	}
 }
 
@@ -68,22 +81,22 @@ def runCmd() {
 	def headers = [:] 
 	headers.put("HOST", "$host:$LocalDevicePort")
 	headers.put("Content-Type", "application/x-www-form-urlencoded")
-    
+	
 	//log.debug "The Header is $headers"
-    
+	
 	def path = '/api/LiveData.xml'
 	def body = ''
 	//log.debug "Uses which method: $DevicePostGet"
 	def method = "GET"
 
 	try {
-    	log.debug "Making TED5000 request to $device.deviceNetworkId"
+		log.debug "Making TED5000 request to $device.deviceNetworkId"
 		def hubAction = new physicalgraph.device.HubAction(
-			method: method,
-			path: path,
-			body: body,
-			headers: headers
-			)
+method: method,
+path: path,
+body: body,
+headers: headers
+		)
 		hubAction.options = [outputMsgToS3:false]
 		//log.debug hubAction
 		hubAction
@@ -105,16 +118,17 @@ private String convertPortToHex(port) {
 }
 
 def parse(String description) {
-//this is automatically called when the hub action returns
-	try {
- 	def msg = parseLanMessage(description)
-    def xml = msg.xml
- 	def powerNow = xml.Power.Total.PowerNow
-    log.debug "Got Reply - power: $powerNow W"
-    sendEvent (name: "power", value: powerNow, unit:"W")
-    	}
-	catch (Exception e) {
-		log.debug "Hit Exception $e"
-	}
-}
+	//this is automatically called when the hub action returns
+	log.debug "Got Reply"
+	def xml = parseLanMessage(description).xml
 
+	
+
+	def evt1 = createEvent (name: "power", value: xml.Power.Total.PowerNow, unit:"W")
+	def evt2 = createEvent (name: "voltage", value: ((xml.Voltage.Total.VoltageNow).toDouble() / 10.0), unit:"V")
+	def evt3 = createEvent (name: "cost", value: ((xml.Cost.Total.CostNow).toDouble() / 100.0), unit:"V")
+	def evt4 = createEvent (name: "daily_max_power", value: xml.Power.Total.PeakTdy, unit:"W")
+	def evt5 = createEvent (name: "daily_min_power", value: xml.Power.Total.MinTdy, unit:"W")
+	
+	return [evt1, evt2,evt3, evt4,evt5]
+}

@@ -13,17 +13,10 @@ metadata {
 	}
 
 	// UI tile definitions
-	tiles(scale: 2) {
+	tiles (scale: 2){
 		
-		valueTile(	"power", 
-		"device.power", 
-width: 4, 
-height: 4
-		) 
-		{
-			state(	"device.power",
-label:'${currentValue} W', 
-backgroundColors:[
+		valueTile(	"power", "device.power", width: 4, height:4) 		{
+			state(	"device.power",label:'${currentValue} W', backgroundColors:[
 			[value: 200, color: "#153591"],
 			[value: 400, color: "#1e9cbb"],
 			[value: 600, color: "#90d2a7"],
@@ -39,15 +32,15 @@ backgroundColors:[
 			state("device.voltage", label:'${currentValue} V' )
 		}
 		
-		standardTile("refresh", "command.refresh",width: 2,  height: 2, inactiveLabel: false) {
+		valueTile("refresh", "command.refresh",width: 2,  height: 2) {
 			state "default", label:'refresh', action:"refresh.refresh", icon:"st.secondary.refresh-icon"
 		}
 		
-		valueTile(	"daily_max_power","device.daily_max_power",width: 3,height: 1) {
+		valueTile(	"daily_max_power","device.daily_max_power",width: 4,height: 1) {
 			state("device.daily_max_power", label:'Daily Max: ${currentValue} W')
 		}
-		
-		valueTile(	"daily_min_power","device.daily_min_power",width: 3,height: 1) {
+	
+		valueTile(	"daily_min_power","device.daily_min_power",width: 4,height: 1) {
 			state("device.daily_min_power",label:'Daily Min: ${currentValue} w')
 		}
 		
@@ -55,7 +48,7 @@ backgroundColors:[
 			state("device.cost", label:'\044 ${currentValue} CPH')
 		}
 		main(["power"])
-		details(["power","refresh" ,"daily_max_power","daily_min_power","voltage", "cost"])
+		details(["power","refresh","daily_max_power","daily_min_power", "cost","voltage"])
 	}
 }
 
